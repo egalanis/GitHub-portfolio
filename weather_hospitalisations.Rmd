@@ -1,0 +1,145 @@
+---
+title: "Galanis-219081869-Ass1- Code"
+output: html_notebook
+---
+```{r}
+# Install Packages
+install.packages("expss")
+library(expss)
+```
+
+```{r}
+# Load the AIMS Heron Island Weather Data
+
+the.data <- as.matrix(read.csv("/Users/elizabethgalanis/Desktop/SIT743 Assignment 1/AIMSHeronIslandData.csv", header = TRUE, sep = ","))
+
+```
+
+```{r}
+# Create sample of data
+my.data <- the.data [sample(1: 366, 200), c(1:5)]
+
+```
+
+```{r}
+# Save sample to text doc
+
+write.table(my.data,"Galanis-219081869-HIMyData.txt")
+            
+```
+
+```{r}
+# 1.1 Create Histogram of Humidity
+
+hist(my.data[,5],
+     main="Histogram of Humidity",
+     xlab = "Humidity (percent)"
+     )
+
+# Create Boxplot of Humidity
+
+boxplot(my.data[,5],
+     main="Boxplot of Humidity",
+     xlab = "Humidity (percent)"
+     )
+
+# Summary Statistics of Humidity
+
+summary(my.data[,5])
+
+```
+
+```{r}
+# 1.3 Scatter plot of Air and Water Temperature 
+
+plot(my.data[,3], my.data[,1], main="Air and Water Temperature", xlab="Air Temperature", ylab="Water Temperature")
+
+# Fit the regression model 
+airwatertemp.lm <- lm(my.data[,1]~my.data[,3])
+# Add the regression line
+abline(airwatertemp.lm)
+# Find r and r squared values
+summary(airwatertemp.lm)
+
+```
+
+```{r}
+
+# 1.4 Create the 3 categorical variables
+
+WaterTBucket <- ifelse(my.data[,1] >25, "High", "Low")
+WindSBucket <- ifelse(my.data[,2] >30, "High", "Low")
+AirPreBucket <- ifelse(my.data[,4] >1019, "High", "Low")
+
+```
+
+```{r}
+# 1.4.a Construct a cross table
+
+cro(WindSBucket, AirPreBucket, WaterTBucket)
+
+```
+
+```{r}
+# Download ITdata 
+zz<-read.table("/Users/elizabethgalanis/Desktop/SIT743 Assignment 1/ITdata.txt")
+zz<-as.matrix(zz)
+```
+
+```{r}
+# Q5
+# 5.1 Kmeans clustering with k=5
+cl <- kmeans(zz, 5, nstart = 25)
+# Plot of clustering
+plot(zz, col = cl$cluster)
+points(cl$centers, col=1:5, pch = 8)
+```
+
+```{r}
+# 5.2 Spectral Clustering
+
+# Install relevant packages
+install.packages("kernlab")
+library(kernlab)
+
+SC <- specc(zz, centers = 5)
+centers(SC)
+# Plot Spectral Clustering results
+plot(zz, col=SC, main="Spectral Clustering")
+```
+
+```{r}
+# Q6 
+
+#Q 6.1 Plot a histogram of WT
+# Create WT vector
+WT<- the.data[,1]
+# Print histogram
+hist(WT,
+     main="Histogram of Water Temperatures",
+     xlab = "Water Temperature at 1.6m Depth (degrees celcius)"
+     )
+```
+
+```{r}
+# Fit a Guassian distribution
+#install.packages("fitdistrplus")
+library (fitdistrplus)
+FIT <- fitdist(WT, "norm")
+plot(FIT)
+mean(WT)
+sd(WT)
+```
+
+
+```{r}
+#install.packages("mixtools")
+library(mixtools)
+mixmdl = normalmixEM(WT)
+summary(mixmdl)
+plot(mixmdl, which=2)
+lines(density(WT), lty=2, lwd=2)
+mixmdl$mu
+mixmdl$sigma
+plot(mixmdl$all.loglik, main="Likelihood Plot")
+```

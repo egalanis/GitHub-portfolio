@@ -1,0 +1,238 @@
+---
+title: "galanis-219081869-Ass2-Code"
+output: html_document
+---
+```{r}
+#Install all required packages
+
+#install.packages("BiocManager")
+#BiocManager::install("gRain") 
+#BiocManager::install("RBGL")
+#BiocManager::install("gRbase")
+#BiocManager::install("Rgraphviz")
+#install.packages("igraph")
+#install.packages("ggm")
+#install.packages("bnlearn")
+
+library(igraph)
+library(ggm)
+library(bnlearn)
+library(Rgraphviz)
+library(RBGL) 
+library(gRbase) 
+library(gRain) 
+```
+
+```{r}
+#Q 1.7
+#Write R-Program to produce the Bayesian network shown in Fig 1
+dag <- DAG(D~M, M~S+J+A,S~E,J~E+G,M~A)
+plotGraph(dag, nodesize=20, tcltk=FALSE, vc="white")
+
+```
+
+```{r}
+# Perform d-seperation tests for the following cases: 
+#A
+# E is independent of {A,G} given {S,M}
+dSep(dag, first="E", second=c("A", "G"), cond=c("S","M"))
+
+#B 
+#{S, A} is indepdent of G given {E, J, D}
+dSep(dag, first = c("S", "A"), second="G", cond=c("E", "J","D"))
+
+```
+
+```{r}
+# Create bayesian network as a string
+models='[E][G][A][S|E][J|E:G][M|S:J:A][D|M]'
+res2=model2network(models)
+res2
+plot(res2)
+
+#Markov Blanket of J
+mb(res2,"J")
+
+
+# Markov Blanket of S
+mb(res2,"S")
+
+# Plot Markov Blanket S
+graphviz.plot(res2, highlight = list(nodes = mb(res2, "S")))
+```
+
+```{r}
+# Question 2
+# Implementing a Bayesian network in R and performing inference
+
+# Specify the probability tables
+lh <- c("0", "1")
+lmh <- c("0", "1", "2")
+h <- cptable(~H, values=c(0.4, 0.6), levels=lh)
+w.h <- cptable(~W|H, values=c(0.2,0.3, 0.5, 0.6, 0.2, 0.2), levels=lmh)
+t.h <- cptable(~T|H, values=c(0.9, 0.1, 0.2, 0.8), levels=lh)
+s.t <-cptable(~S|T, values=c(0.1, 0.3, 0.6, 0.3, 0.3, 0.4), levels=lmh)
+r.t.h<-cptable(~R|T:H, values=c(0.3,0.7,0.1,0.9,0.3,0.7,0.2,0.8), levels=lh)
+
+#Compile list of probability tables and create network
+plist <- compileCPT(list(h, w.h, t.h, s.t, r.t.h))
+plist$H
+plist$R
+plist$W
+plist$T
+plist$S
+
+net1 <- grain(plist)
+summary(net1)
+# Plot the network
+plot(net1$dag)
+
+```
+```{r}
+#2.2
+#a
+#P(H=1 | T = 0)
+netT0 <- setEvidence(net1, nodes=c("T"), states = c("0"))
+querygrain(netT0, nodes=c("H"))
+
+# 0.25
+```
+```{r}
+#b
+# Find the joint distribution of T, H and P
+querygrain(net1, nodes=c("R", "H", "T"), type = "joint")
+```
+
+
+```{r}
+#c
+# P(S=2|W=1,R=1)
+netW1R1 <- setEvidence(net1, nodes=c("W", "R"), states=c("1", "1"))
+querygrain(netW1R1, nodes=c("S"))
+
+# 0.503
+```
+
+
+```{r}
+#d
+#Maringal distribution of precipitation
+querygrain(net1, nodes=c("R"), type="marginal")
+```
+
+
+```{r}
+#e
+#P(R=high|T=cold,H=high)
+netT0H1 <- setEvidence(net1, nodes=c("T", "H"), states=c("0", "1"))
+querygrain(netT0H1, nodes=c("R"))
+
+# 0.7
+```
+
+
+```{r}
+#f
+#P(R=high|T=cold,H=high,S=low)
+netT0H1S0 <- setEvidence(net1, nodes=c("T", "H", "S"), states=c("0", "1", "0"))
+querygrain(netT0H1S0, nodes=c("R"))
+
+# 0.7
+```
+
+
+```{r}
+#g
+#P(R=high|T=cold,H=high,W=Medium)
+netT0H1W1 <- setEvidence(net1, nodes=c("T", "H", "W"), states=c("0", "1", "1"))
+querygrain(netT0H1W1, nodes=c("R"))
+
+# 0.7
+```
+
+```{r}
+# Quetion 4
+data(alarm) 
+summary(alarm)
+
+#create and plot the true network structure.
+modelstring = paste0("[HIST|LVF][CVP|LVV][PCWP|LVV][HYP][LVV|HYP:LVF][LVF]",
+"[STKV|HYP:LVF][ERLO][HRBP|ERLO:HR][HREK|ERCA:HR][ERCA][HRSA|ERCA:HR][ANES]", "[APL][TPR|APL][ECO2|ACO2:VLNG][KINK][MINV|INT:VLNG][FIO2][PVS|FIO2:VALV]", "[SAO2|PVS:SHNT][PAP|PMB][PMB][SHNT|INT:PMB][INT][PRSS|INT:KINK:VTUB][DISC]", "[MVS][VMCH|MVS][VTUB|DISC:VMCH][VLNG|INT:KINK:VTUB][VALV|INT:VLNG]", "[ACO2|VALV][CCHL|ACO2:ANES:SAO2:TPR][HR|CCHL][CO|HR:STKV][BP|CO:TPR]")
+dag = model2network(modelstring)
+par(mfrow = c(1,1)) #source("https://bioconductor.org/biocLite.R") #biocLite("Rgraphviz")
+graphviz.plot(dag)
+```
+```{r}
+# Plot the BIC networks and find the BIC scores
+
+# For sample of the first 100
+bnet100bic = hc(alarm[0:100,], score="bic")
+graphviz.plot(bnet100bic)
+score(bnet100bic, alarm[0:100,], type="bic")
+
+# For sample of first 1000
+bnet1000bic = hc(alarm[0:1000,], score="bic")
+graphviz.plot(bnet1000bic)
+score(bnet1000bic, alarm[0:1000,], type="bic")
+
+# For sample of first 1500
+bnet15000bic = hc(alarm[0:15000,], score="bic")
+graphviz.plot(bnet15000bic)
+score(bnet15000bic, alarm[0:15000,], type="bic")
+```
+```{r}
+# Plot Bde graphs and scores
+
+# For sample of 100
+bnet100bde = hc(alarm[0:100,], score="bde")
+graphviz.plot(bnet100bde)
+score(bnet100bde, alarm[0:100,], type="bde")
+
+# For sample of 1000
+bnet1000bde = hc(alarm[0:1000,], score="bde")
+graphviz.plot(bnet1000bde)
+score(bnet1000bde, alarm[0:1000,], type="bde")
+
+# For sample of 1500
+bnet15000bde = hc(alarm[0:15000,], score="bde")
+graphviz.plot(bnet15000bde)
+score(bnet15000bde, alarm[0:15000,], type="bde")
+```
+
+```{r}
+#4.3 
+#a
+bnetbic = hc(alarm, score="bic")
+graphviz.plot(bnetbic)
+score(bnetbic, alarm, type="bic")
+
+bnetbde = hc(alarm, score="bde")
+graphviz.plot(bnetbde)
+score(bnetbde, alarm, type="bde")
+```
+```{r}
+#4.3
+#b
+# Compare Bne and BIC to true network
+graphviz.compare(bnetbic,dag)
+graphviz.compare(bnetbde, dag)
+compare(bnetbic,dag)
+compare(bnetbde,dag)
+```
+```{r}
+#4.3 
+#c
+# Fit the data to bnetbic. Show CPD table entries for "ECO2"
+fitbn = bn.fit(bnetbic, alarm)
+fitbn["ECO2"]
+```
+
+```{r}
+#4.3
+#d
+#P(BP="HIGH" | STKV ="LOW", HR ="NORMAL", SAO2="NORMAL").
+
+cpquery(fitbn,event=(BP=="HIGH"),evidence=(STKV=="NORMAL")&(HR=="NORMAL")&(SAO2=="NORMAL"))
+
+```
+
